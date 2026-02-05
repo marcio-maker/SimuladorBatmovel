@@ -1,0 +1,1886 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Tático Batmóvel - Gotham City</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ===== RESET & BASE STYLES ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #0a0a0f;
+            color: #ffffff;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 60, 120, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(0, 120, 200, 0.1) 0%, transparent 20%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        /* ===== HEADER STYLES ===== */
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 1000px;
+            padding: 0 10px;
+        }
+
+        .title {
+            color: #00b4ff;
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            margin-bottom: 5px;
+            text-shadow: 0 0 15px rgba(0, 180, 255, 0.7);
+            letter-spacing: 1px;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            color: #7ab8ff;
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+            margin-bottom: 5px;
+            line-height: 1.3;
+        }
+
+        .bat-logo {
+            color: #ffd700;
+            font-size: clamp(1.5rem, 4vw, 2.2rem);
+            margin-bottom: 5px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { text-shadow: 0 0 5px #ffd700; }
+            50% { text-shadow: 0 0 20px #ffd700, 0 0 30px #ffd700; }
+            100% { text-shadow: 0 0 5px #ffd700; }
+        }
+
+        /* ===== MAIN CONTAINER ===== */
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1000px;
+            height: 85vh;
+            max-height: 800px;
+            gap: 10px;
+            padding: 0 10px;
+        }
+
+        /* ===== SIMULATION VIEWPORT ===== */
+        .simulation-viewport {
+            position: relative;
+            width: 100%;
+            height: 50%; /* Reduzido para dar espaço ao painel */
+            min-height: 250px;
+            border: 2px solid #1a3a5f;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 60, 120, 0.5);
+            background: linear-gradient(to bottom, #050810, #0a1525);
+            flex-shrink: 0;
+        }
+
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .crt-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0.2;
+        }
+
+        /* ===== HUD OVERLAY ===== */
+        .hud-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+            padding: 8px;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            grid-template-rows: auto 1fr auto;
+        }
+
+        .hud-left {
+            grid-column: 1;
+            grid-row: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .hud-center {
+            grid-column: 2;
+            grid-row: 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .hud-right {
+            grid-column: 3;
+            grid-row: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+        .hud-item {
+            background: rgba(10, 25, 47, 0.9);
+            border: 1px solid rgba(0, 180, 255, 0.4);
+            border-radius: 4px;
+            padding: 4px 8px;
+            backdrop-filter: blur(4px);
+            min-width: 70px;
+            max-width: 100px;
+        }
+
+        .hud-label {
+            color: #7ab8ff;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1px;
+            white-space: nowrap;
+        }
+
+        .hud-value {
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+
+        .hud-value#hudSpeed {
+            color: #00ff88;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .hud-value#hudFuel {
+            color: #ffaa00;
+        }
+
+        .hud-value#hudSystem {
+            color: #00b4ff;
+        }
+
+        .radar-container {
+            width: 60px;
+            height: 60px;
+            background: rgba(10, 25, 47, 0.8);
+            border: 1px solid rgba(0, 180, 255, 0.4);
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .radar-sweep {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(transparent 270deg, rgba(0, 180, 255, 0.3) 360deg);
+            animation: radarSweep 2s linear infinite;
+        }
+
+        @keyframes radarSweep {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== CONTROL PANEL ===== */
+        .vehicle-control-panel {
+            background: linear-gradient(145deg, #0d1522, #08101a);
+            border: 1px solid #1a3a5f;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 5px 20px rgba(0, 30, 60, 0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+            height: 50%; /* Aumentado para ocupar a metade inferior */
+        }
+
+        .panel-title {
+            color: #00d9ff;
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        /* ===== STATUS COMPACT ===== */
+        .status-compact {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .status-item-compact {
+            background-color: rgba(10, 25, 47, 0.8);
+            border: 1px solid #1a4a7a;
+            border-radius: 5px;
+            padding: 8px;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .status-label-compact {
+            color: #7ab8ff;
+            font-size: 0.65rem;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            line-height: 1.2;
+        }
+
+        .status-value-compact {
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            line-height: 1.2;
+        }
+
+        /* ===== CONTROLS COMPACT ===== */
+        .vehicle-controls-compact {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin: 6px 0;
+        }
+
+        .control-btn-compact {
+            background: linear-gradient(145deg, #003366, #001a33);
+            border: 1px solid #1a4a7a;
+            color: #ffffff;
+            padding: 10px 6px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.2s;
+            min-height: 60px;
+        }
+
+        .control-btn-compact:hover {
+            background: linear-gradient(145deg, #004488, #002244);
+            border-color: #00b4ff;
+            transform: translateY(-2px);
+        }
+
+        .control-btn-compact:active {
+            transform: translateY(1px);
+        }
+
+        .control-btn-compact.active {
+            background: linear-gradient(145deg, #0066cc, #004488);
+            border-color: #00b4ff;
+            box-shadow: 0 0 15px rgba(0, 180, 255, 0.7);
+        }
+
+        .control-btn-compact i {
+            font-size: 1rem;
+        }
+
+        .control-btn-compact:nth-child(1) i {
+            color: #00ff88;
+        }
+
+        .control-btn-compact:nth-child(2) i {
+            color: #ff4444;
+        }
+
+        .control-btn-compact:nth-child(3) i {
+            color: #ffaa00;
+        }
+
+        .control-btn-compact:nth-child(4) i {
+            color: #aa66ff;
+        }
+
+        /* ===== SCORE DISPLAY COMPACT ===== */
+        .score-display-compact {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+            padding: 8px 10px;
+            background: rgba(10, 25, 47, 0.8);
+            border: 1px solid #1a4a7a;
+            border-radius: 6px;
+        }
+
+        .score-item-compact {
+            text-align: center;
+        }
+
+        .score-label-compact {
+            color: #7ab8ff;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            margin-bottom: 3px;
+            line-height: 1.2;
+        }
+
+        .score-value-compact {
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            line-height: 1.2;
+        }
+
+        /* ===== DIRECTION CONTROLS ===== */
+        .direction-controls-compact {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            margin: 8px 0;
+        }
+
+        .direction-row-compact {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            width: 100%;
+            max-width: 200px;
+        }
+
+        .direction-btn-compact {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(145deg, #003366, #001a33);
+            border: 2px solid #1a4a7a;
+            color: #ffffff;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.1s;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        .direction-btn-compact:hover {
+            border-color: #00b4ff;
+        }
+
+        .direction-btn-compact:active {
+            background: linear-gradient(145deg, #0066cc, #004488);
+            border-color: #00b4ff;
+            transform: scale(0.95);
+            box-shadow: 0 0 15px rgba(0, 180, 255, 0.5);
+        }
+
+        .direction-btn-compact.active {
+            background: linear-gradient(145deg, #0066cc, #004488);
+            border-color: #00b4ff;
+            box-shadow: 0 0 15px rgba(0, 180, 255, 0.7);
+        }
+
+        /* ===== LOG COMPACT ===== */
+        .system-log-compact {
+            background-color: rgba(5, 15, 30, 0.9);
+            border: 1px solid #1a4a7a;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 8px;
+            flex: 1;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .system-log-compact div:first-child {
+            color: #00d9ff;
+            font-size: 0.75rem;
+            margin-bottom: 6px;
+        }
+
+        .log-content-compact {
+            background-color: rgba(0, 0, 0, 0.7);
+            border: 1px solid #0a3a5a;
+            border-radius: 4px;
+            padding: 8px;
+            flex: 1;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            line-height: 1.3;
+            color: #00ffaa;
+        }
+
+        .log-content-compact::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .log-content-compact::-webkit-scrollbar-track {
+            background: rgba(10, 25, 47, 0.5);
+            border-radius: 3px;
+        }
+
+        .log-content-compact::-webkit-scrollbar-thumb {
+            background: #1a4a7a;
+            border-radius: 3px;
+        }
+
+        /* ===== EFFECTS ===== */
+        .fuel-warning {
+            color: #ff4444 !important;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .turbo-active {
+            color: #ffaa00 !important;
+            text-shadow: 0 0 10px rgba(255, 170, 0, 0.7) !important;
+        }
+
+        .camouflage-active {
+            color: #aa66ff !important;
+            text-shadow: 0 0 10px rgba(170, 102, 255, 0.7) !important;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            color: white;
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            text-align: center;
+            padding: 15px;
+            backdrop-filter: blur(5px);
+        }
+
+        .game-over h2 {
+            color: #ff4444;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.7);
+        }
+
+        .game-over p {
+            margin: 6px 0;
+            font-size: 0.8rem;
+        }
+
+        .restart-btn {
+            background: linear-gradient(145deg, #0066cc, #004488);
+            border: 2px solid #00b4ff;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .restart-btn:hover {
+            background: linear-gradient(145deg, #0088cc, #0066aa);
+            box-shadow: 0 0 20px rgba(0, 180, 255, 0.7);
+        }
+
+        /* ===== MOBILE CONTROLS ===== */
+        .mobile-controls {
+            display: none;
+            position: fixed;
+            bottom: 15px;
+            left: 10px;
+            right: 10px;
+            z-index: 20;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .mobile-joystick {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(10, 25, 47, 0.7);
+            border: 2px solid rgba(0, 180, 255, 0.4);
+            position: relative;
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        .mobile-joystick-knob {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #0066cc, #004488);
+            border: 2px solid #00b4ff;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .mobile-action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: auto;
+        }
+
+        .mobile-action-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #003366, #001a33);
+            border: 2px solid #ffaa00;
+            color: white;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            margin-top: 10px;
+            text-align: center;
+            color: #7ab8ff;
+            font-size: 0.7rem;
+            padding: 10px;
+            width: 100%;
+            max-width: 1000px;
+            border-top: 1px solid #1a3a5f;
+            line-height: 1.4;
+        }
+
+        /* ===== RESPONSIVE DESIGN ===== */
+        /* REMOVIDAS AS MEDIA QUERIES QUE DEFINEM LAYOUT HORIZONTAL */
+        
+        /* Mantemos apenas ajustes de tamanho para telas maiores */
+        @media (min-width: 768px) {
+            .container {
+                /* Mantemos layout vertical */
+                height: 85vh;
+            }
+            
+            .simulation-viewport {
+                height: 55%;
+                min-height: 300px;
+            }
+            
+            .vehicle-control-panel {
+                height: 45%;
+                min-height: 300px;
+            }
+            
+            .score-display-compact {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .direction-btn-compact {
+                width: 55px;
+                height: 55px;
+                font-size: 1.3rem;
+            }
+            
+            .control-btn-compact {
+                padding: 12px 8px;
+                min-height: 70px;
+                font-size: 0.85rem;
+            }
+            
+            .hud-item {
+                min-width: 80px;
+                padding: 6px 10px;
+            }
+            
+            .hud-label {
+                font-size: 0.65rem;
+            }
+            
+            .hud-value {
+                font-size: 0.95rem;
+            }
+            
+            .radar-container {
+                width: 70px;
+                height: 70px;
+            }
+            
+            /* Mostramos controles de direção no desktop */
+            .direction-controls-compact {
+                display: flex;
+            }
+            
+            /* Escondemos controles mobile */
+            .mobile-controls {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                padding: 0 5px;
+                gap: 8px;
+                height: 90vh;
+                max-height: none;
+            }
+            
+            .header {
+                margin-bottom: 8px;
+                padding: 0 5px;
+            }
+            
+            .simulation-viewport {
+                height: 50%;
+                min-height: 200px;
+            }
+            
+            .vehicle-control-panel {
+                height: 50%;
+                padding: 10px;
+                gap: 10px;
+            }
+            
+            .hud-item {
+                min-width: 65px;
+                padding: 4px 6px;
+            }
+            
+            .hud-label {
+                font-size: 0.55rem;
+            }
+            
+            .hud-value {
+                font-size: 0.8rem;
+            }
+            
+            .radar-container {
+                width: 50px;
+                height: 50px;
+            }
+            
+            /* Mostramos controles mobile em telas pequenas */
+            .mobile-controls {
+                display: flex;
+            }
+            
+            /* Escondemos controles de direção desktop */
+            .direction-controls-compact {
+                display: none;
+            }
+            
+            .log-content-compact {
+                height: 80px;
+                font-size: 0.7rem;
+                padding: 6px;
+            }
+            
+            .control-btn-compact {
+                min-height: 55px;
+                font-size: 0.75rem;
+                padding: 8px 4px;
+            }
+            
+            .status-value-compact {
+                font-size: 0.9rem;
+            }
+            
+            .score-display-compact {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .simulation-viewport {
+                height: 45%;
+                min-height: 180px;
+            }
+            
+            .vehicle-control-panel {
+                height: 55%;
+            }
+            
+            .title {
+                font-size: 1.3rem;
+            }
+            
+            .subtitle {
+                font-size: 0.75rem;
+            }
+            
+            .bat-logo {
+                font-size: 1.5rem;
+            }
+            
+            .panel-title {
+                font-size: 1rem;
+            }
+            
+            .status-compact {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            
+            .status-item-compact {
+                padding: 6px;
+            }
+            
+            .status-label-compact {
+                font-size: 0.6rem;
+            }
+            
+            .status-value-compact {
+                font-size: 0.85rem;
+            }
+            
+            .mobile-joystick {
+                width: 90px;
+                height: 90px;
+            }
+            
+            .mobile-joystick-knob {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .mobile-action-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 0.9rem;
+            }
+            
+            .score-display-compact {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 6px;
+                padding: 6px 8px;
+            }
+            
+            .score-label-compact {
+                font-size: 0.55rem;
+            }
+            
+            .score-value-compact {
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .simulation-viewport {
+                height: 40%;
+                min-height: 160px;
+            }
+            
+            .vehicle-control-panel {
+                height: 60%;
+            }
+            
+            .title {
+                font-size: 1.1rem;
+            }
+            
+            .hud-item {
+                min-width: 60px;
+                padding: 3px 5px;
+            }
+            
+            .hud-label {
+                font-size: 0.5rem;
+            }
+            
+            .hud-value {
+                font-size: 0.75rem;
+            }
+            
+            .control-btn-compact {
+                font-size: 0.7rem;
+                min-height: 50px;
+                padding: 6px 3px;
+            }
+            
+            .control-btn-compact i {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Para telas muito altas */
+        @media (min-height: 800px) {
+            .container {
+                height: 80vh;
+                max-height: 900px;
+            }
+            
+            .simulation-viewport {
+                height: 50%;
+            }
+            
+            .vehicle-control-panel {
+                height: 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="bat-logo">
+            <i class="fas fa-mask"></i>
+        </div>
+        <h1 class="title">SIMULADOR BATMÓVEL</h1>
+        <p class="subtitle">Sistema WayneTech - Gotham City</p>
+    </div>
+
+    <div class="container">
+        <!-- Viewport de Simulação (PARTE SUPERIOR) -->
+        <div class="simulation-viewport">
+            <canvas id="gameCanvas"></canvas>
+            <div class="crt-overlay"></div>
+            
+            <!-- HUD Overlay -->
+            <div class="hud-overlay">
+                <div class="hud-left">
+                    <div class="hud-item">
+                        <div class="hud-label">VELOCIDADE</div>
+                        <div class="hud-value" id="hudSpeed">0 km/h</div>
+                    </div>
+                    <div class="hud-item">
+                        <div class="hud-label">COMBUSTÍVEL</div>
+                        <div class="hud-value" id="hudFuel">100%</div>
+                    </div>
+                </div>
+                
+                <div class="hud-center">
+                    <div class="hud-item">
+                        <div class="hud-label">SISTEMA</div>
+                        <div class="hud-value" id="hudSystem">OFFLINE</div>
+                    </div>
+                    <div class="radar-container">
+                        <div class="radar-sweep"></div>
+                    </div>
+                </div>
+                
+                <div class="hud-right">
+                    <div class="hud-item">
+                        <div class="hud-label">PONTOS</div>
+                        <div class="hud-value" id="hudScore">0</div>
+                    </div>
+                    <div class="hud-item">
+                        <div class="hud-label">DISTÂNCIA</div>
+                        <div class="hud-value" id="hudDistance">0 m</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tela de Game Over -->
+            <div class="game-over" id="gameOverScreen">
+                <h2>MISSÃO FALHOU</h2>
+                <p id="gameOverReason"></p>
+                <p>Pontuação: <span id="finalScore">0</span></p>
+                <p>Distância: <span id="finalDistance">0</span>m</p>
+                <button class="restart-btn" onclick="restartGame()">
+                    <i class="fas fa-redo"></i> REINICIAR
+                </button>
+            </div>
+        </div>
+
+        <!-- Painel de Controle Compacto (PARTE INFERIOR) -->
+        <div class="vehicle-control-panel">
+            <!-- Score Display Compacto -->
+            <div class="score-display-compact">
+                <div class="score-item-compact">
+                    <div class="score-label-compact">PONTUAÇÃO</div>
+                    <div class="score-value-compact" id="scoreValue">0</div>
+                </div>
+                <div class="score-item-compact">
+                    <div class="score-label-compact">DISTÂNCIA</div>
+                    <div class="score-value-compact" id="distanceValue">0 m</div>
+                </div>
+                <div class="score-item-compact">
+                    <div class="score-label-compact">OBSTÁCULOS</div>
+                    <div class="score-value-compact" id="obstaclesValue">0</div>
+                </div>
+                <div class="score-item-compact">
+                    <div class="score-label-compact">VEL. MÁX</div>
+                    <div class="score-value-compact" id="maxSpeedValue">0 km/h</div>
+                </div>
+            </div>
+            
+            <div class="panel-title">
+                <i class="fas fa-gamepad"></i>
+                CONTROLES TÁTICOS
+            </div>
+            
+            <!-- Status Compacto -->
+            <div class="status-compact">
+                <div class="status-item-compact">
+                    <div class="status-label-compact">VELOCIDADE</div>
+                    <div class="status-value-compact" id="batmobileSpeed">0 km/h</div>
+                </div>
+                <div class="status-item-compact">
+                    <div class="status-label-compact">COMBUSTÍVEL</div>
+                    <div class="status-value-compact" id="batmobileFuel">100%</div>
+                </div>
+                <div class="status-item-compact">
+                    <div class="status-label-compact">SISTEMAS</div>
+                    <div class="status-value-compact" id="batmobileSystems">OFFLINE</div>
+                </div>
+                <div class="status-item-compact">
+                    <div class="status-label-compact">DANOS</div>
+                    <div class="status-value-compact" id="batmobileDamage">0%</div>
+                </div>
+            </div>
+
+            <!-- Controles de Ação Compactos -->
+            <div class="vehicle-controls-compact">
+                <button class="control-btn-compact" id="startBtn" onclick="gameEngine.start()">
+                    <i class="fas fa-play"></i>
+                    <span>LIGAR</span>
+                </button>
+                <button class="control-btn-compact" id="stopBtn" onclick="gameEngine.stop()">
+                    <i class="fas fa-stop"></i>
+                    <span>PARAR</span>
+                </button>
+                <button class="control-btn-compact" id="turboBtn" onclick="gameEngine.toggleTurbo()">
+                    <i class="fas fa-bolt"></i>
+                    <span>TURBO</span>
+                </button>
+                <button class="control-btn-compact" id="camouflageBtn" onclick="gameEngine.toggleCamouflage()">
+                    <i class="fas fa-eye-slash"></i>
+                    <span>CAMUFLAR</span>
+                </button>
+            </div>
+
+            <!-- Controles de Direção (Desktop) -->
+            <div class="direction-controls-compact">
+                <div class="direction-row-compact">
+                    <button class="direction-btn-compact" id="upBtn">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                </div>
+                <div class="direction-row-compact">
+                    <button class="direction-btn-compact" id="leftBtn">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button class="direction-btn-compact" id="downBtn">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <button class="direction-btn-compact" id="rightBtn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Log do Sistema Compacto -->
+            <div class="system-log-compact">
+                <div>LOG DO SISTEMA</div>
+                <div class="log-content-compact" id="batmobileLog">
+                    > Sistema inicializado<br>
+                    > Aguardando ignição...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controles Mobile -->
+    <div class="mobile-controls">
+        <div class="mobile-joystick" id="mobileJoystick">
+            <div class="mobile-joystick-knob" id="mobileJoystickKnob"></div>
+        </div>
+        <div class="mobile-action-buttons">
+            <button class="mobile-action-btn" id="mobileTurboBtn">
+                <i class="fas fa-bolt"></i>
+            </button>
+            <button class="mobile-action-btn" id="mobileBrakeBtn">
+                <i class="fas fa-hand-paper"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Simulador do Batmóvel | Sistema WayneTech v2.1</p>
+        <p>Controles: Setas/WASD = Direção | Espaço = Turbo | C = Camuflagem</p>
+        <p>© Wayne Enterprises - Gotham City</p>
+    </div>
+
+    <script>
+        // ===========================================
+        // SISTEMA DO BATMÓVEL - MOTOR DE JOGO
+        // ===========================================
+
+        class GameEngine {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Reduzir dimensões para performance
+                this.width = this.canvas.width = this.canvas.offsetWidth;
+                this.height = this.canvas.height = this.canvas.offsetHeight;
+                
+                // Estado do jogo
+                this.gameState = 'READY';
+                this.lastTime = 0;
+                this.score = 0;
+                this.distance = 0;
+                this.maxSpeed = 0;
+                this.obstaclesAvoided = 0;
+                this.gameOver = false;
+                
+                // Jogador com velocidade reduzida
+                this.player = {
+                    x: this.width / 2,
+                    y: this.height * 0.8,
+                    width: Math.min(80, this.width * 0.12),
+                    height: Math.min(40, this.width * 0.06),
+                    velocity: 0,
+                    maxVelocity: 200,
+                    acceleration: 0.15,
+                    deceleration: 0.1,
+                    moveSpeed: 5,
+                    turbo: false,
+                    camouflage: false,
+                    fuel: 100,
+                    damage: 0,
+                    invincible: false,
+                    invincibleTimer: 0,
+                    lane: 1
+                };
+                
+                // Controles
+                this.keys = {};
+                this.input = {
+                    left: false,
+                    right: false,
+                    up: false,
+                    down: false,
+                    turbo: false
+                };
+                
+                // Estrada
+                this.road = {
+                    width: this.width * 0.7,
+                    x: this.width * 0.15,
+                    lines: [],
+                    lineWidth: 2,
+                    lineLength: 20,
+                    lineGap: 40
+                };
+                
+                // Obstáculos
+                this.obstacles = [];
+                this.obstacleTypes = [
+                    { width: 50, height: 35, color: '#ff4444', score: 10 },
+                    { width: 45, height: 50, color: '#aa66ff', score: 15 },
+                    { width: 35, height: 35, color: '#ffaa00', score: 20 },
+                    { width: 60, height: 30, color: '#00ff88', score: 25 }
+                ];
+                this.obstacleSpawnTimer = 0;
+                this.obstacleSpawnRate = 180;
+                
+                // Partículas
+                this.particles = [];
+                this.maxParticles = 100;
+                
+                // Inicializar
+                this.init();
+            }
+            
+            init() {
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+                this.setupInput();
+                this.setupButtonControls();
+                this.setupMobileControls();
+                this.initRoadLines();
+                this.log('Sistema WayneTech inicializado');
+                requestAnimationFrame((t) => this.gameLoop(t));
+            }
+            
+            resizeCanvas() {
+                this.width = this.canvas.width = this.canvas.offsetWidth;
+                this.height = this.canvas.height = this.canvas.offsetHeight;
+                
+                this.player.x = this.width / 2;
+                this.player.y = this.height * 0.8;
+                this.player.width = Math.min(80, this.width * 0.12);
+                this.player.height = Math.min(40, this.width * 0.06);
+                
+                this.road.width = this.width * 0.7;
+                this.road.x = this.width * 0.15;
+                
+                this.initRoadLines();
+            }
+            
+            initRoadLines() {
+                this.road.lines = [];
+                for (let i = 0; i < 15; i++) {
+                    this.road.lines.push({
+                        x: this.road.x + (this.road.width / 2),
+                        y: i * (this.road.lineLength + this.road.lineGap)
+                    });
+                }
+            }
+            
+            gameLoop(timestamp) {
+                const deltaTime = timestamp - this.lastTime;
+                this.lastTime = timestamp;
+                
+                // Limpar canvas
+                this.ctx.clearRect(0, 0, this.width, this.height);
+                
+                if (this.gameState === 'RUNNING' && !this.gameOver) {
+                    this.update(deltaTime);
+                }
+                
+                this.render();
+                
+                if (!this.gameOver) {
+                    requestAnimationFrame((t) => this.gameLoop(t));
+                }
+            }
+            
+            update(deltaTime) {
+                const delta = Math.min(deltaTime / 16.67, 2.0);
+                
+                // Movimento horizontal
+                if (this.input.left && this.player.lane > 0) {
+                    this.player.lane--;
+                    this.input.left = false;
+                }
+                if (this.input.right && this.player.lane < 2) {
+                    this.player.lane++;
+                    this.input.right = false;
+                }
+                
+                // Posicionar baseado na faixa
+                const laneWidth = this.road.width / 3;
+                const targetX = this.road.x + laneWidth * 0.5 + (this.player.lane * laneWidth);
+                this.player.x += (targetX - this.player.x) * 0.1;
+                
+                // Acelerar
+                if (this.gameState === 'RUNNING') {
+                    const acceleration = this.player.turbo ? this.player.acceleration * 1.5 : this.player.acceleration;
+                    this.player.velocity = Math.min(this.player.maxVelocity, this.player.velocity + acceleration * delta);
+                }
+                
+                // Atualizar distância
+                this.distance += this.player.velocity / 200 * delta;
+                
+                // Atualizar velocidade máxima
+                if (this.player.velocity > this.maxSpeed) {
+                    this.maxSpeed = this.player.velocity;
+                }
+                
+                // Consumir combustível
+                if (this.player.velocity > 0) {
+                    const consumption = this.player.turbo ? 0.4 : 0.1;
+                    this.player.fuel = Math.max(0, this.player.fuel - consumption * (this.player.velocity / 1000) * delta);
+                    
+                    if (this.player.fuel <= 0) {
+                        this.gameOver = true;
+                        this.showGameOver('Combustível esgotado!');
+                    }
+                }
+                
+                // Atualizar obstáculos
+                this.updateObstacles(delta);
+                
+                // Atualizar partículas
+                this.updateParticles(delta);
+                
+                // Atualizar invencibilidade
+                if (this.player.invincible) {
+                    this.player.invincibleTimer -= delta;
+                    if (this.player.invincibleTimer <= 0) {
+                        this.player.invincible = false;
+                    }
+                }
+                
+                // Atualizar UI
+                this.updateUI();
+            }
+            
+            updateObstacles(delta) {
+                this.obstacleSpawnTimer += delta;
+                if (this.obstacleSpawnTimer >= this.obstacleSpawnRate) {
+                    this.spawnObstacle();
+                    this.obstacleSpawnTimer = 0;
+                }
+                
+                for (let i = this.obstacles.length - 1; i >= 0; i--) {
+                    const obstacle = this.obstacles[i];
+                    obstacle.y += (this.player.velocity / 50) * delta;
+                    
+                    if (!obstacle.hit && !this.player.invincible && !this.player.camouflage) {
+                        const playerRect = {
+                            x: this.player.x - this.player.width / 2,
+                            y: this.player.y - this.player.height / 2,
+                            width: this.player.width,
+                            height: this.player.height
+                        };
+                        
+                        const obstacleRect = {
+                            x: obstacle.x - obstacle.width / 2,
+                            y: obstacle.y - obstacle.height / 2,
+                            width: obstacle.width,
+                            height: obstacle.height
+                        };
+                        
+                        if (this.checkCollision(playerRect, obstacleRect)) {
+                            this.onCollision(obstacle);
+                            obstacle.hit = true;
+                        }
+                    }
+                    
+                    if (obstacle.y > this.height + 100) {
+                        if (!obstacle.hit) {
+                            this.obstaclesAvoided++;
+                            this.score += 5;
+                        }
+                        this.obstacles.splice(i, 1);
+                    }
+                }
+            }
+            
+            spawnObstacle() {
+                const type = this.obstacleTypes[Math.floor(Math.random() * this.obstacleTypes.length)];
+                const lane = Math.floor(Math.random() * 3);
+                const laneWidth = this.road.width / 3;
+                const x = this.road.x + laneWidth * 0.5 + (lane * laneWidth);
+                
+                this.obstacles.push({
+                    x: x,
+                    y: -50,
+                    width: type.width,
+                    height: type.height,
+                    color: type.color,
+                    score: type.score,
+                    lane: lane,
+                    hit: false
+                });
+            }
+            
+            checkCollision(rect1, rect2) {
+                return rect1.x < rect2.x + rect2.width &&
+                       rect1.x + rect1.width > rect2.x &&
+                       rect1.y < rect2.y + rect2.height &&
+                       rect1.y + rect1.height > rect2.y;
+            }
+            
+            onCollision(obstacle) {
+                this.player.damage += 20;
+                this.score += Math.max(1, obstacle.score - 5);
+                
+                this.createExplosion(obstacle.x, obstacle.y, obstacle.color);
+                
+                this.player.invincible = true;
+                this.player.invincibleTimer = 30;
+                
+                this.player.velocity *= 0.6;
+                
+                if (this.player.damage >= 100) {
+                    this.gameOver = true;
+                    this.showGameOver('Dano crítico!');
+                } else {
+                    this.log(`Colisão! Dano: ${this.player.damage}%`);
+                }
+            }
+            
+            updateParticles(delta) {
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.x += p.vx * delta;
+                    p.y += p.vy * delta;
+                    p.life -= delta;
+                    
+                    if (p.life <= 0) {
+                        this.particles.splice(i, 1);
+                    }
+                }
+            }
+            
+            createExplosion(x, y, color) {
+                for (let i = 0; i < 15; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8 - 2,
+                        size: Math.random() * 3 + 2,
+                        life: 50 + Math.random() * 50,
+                        color: color
+                    });
+                }
+            }
+            
+            createTrailParticle() {
+                this.particles.push({
+                    x: this.player.x + (Math.random() - 0.5) * this.player.width,
+                    y: this.player.y + this.player.height / 2,
+                    vx: (Math.random() - 0.5) * 1,
+                    vy: Math.random() * 2 + 1,
+                    size: Math.random() * 2 + 1,
+                    life: 30 + Math.random() * 30,
+                    color: 'rgb(100, 100, 255)'
+                });
+            }
+            
+            render() {
+                this.renderBackground();
+                this.renderRoad();
+                this.renderObstacles();
+                this.renderParticles();
+                this.renderPlayer();
+                this.renderSpecialEffects();
+            }
+            
+            renderBackground() {
+                const gradient = this.ctx.createLinearGradient(0, 0, 0, this.height);
+                gradient.addColorStop(0, '#050810');
+                gradient.addColorStop(1, '#0a1525');
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, 0, this.width, this.height);
+                
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.globalAlpha = 0.3;
+                for (let i = 0; i < 30; i++) {
+                    const x = (i * 47) % this.width;
+                    const y = (i * 29) % (this.height * 0.5);
+                    this.ctx.fillRect(x, y, 1, 1);
+                }
+                this.ctx.globalAlpha = 1;
+            }
+            
+            renderRoad() {
+                this.ctx.fillStyle = '#1a1a2e';
+                this.ctx.fillRect(this.road.x, 0, this.road.width, this.height);
+                
+                this.ctx.strokeStyle = '#ffaa00';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.road.x, 0);
+                this.ctx.lineTo(this.road.x, this.height);
+                this.ctx.moveTo(this.road.x + this.road.width, 0);
+                this.ctx.lineTo(this.road.x + this.road.width, this.height);
+                this.ctx.stroke();
+                
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = this.road.lineWidth;
+                this.ctx.setLineDash([this.road.lineLength, this.road.lineGap]);
+                
+                for (let line of this.road.lines) {
+                    line.y += this.player.velocity / 80;
+                    if (line.y > this.height) {
+                        line.y = -this.road.lineLength;
+                    }
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(line.x, line.y);
+                    this.ctx.lineTo(line.x, line.y + this.road.lineLength);
+                    this.ctx.stroke();
+                }
+                
+                this.ctx.setLineDash([]);
+                
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                this.ctx.lineWidth = 1;
+                for (let i = 1; i <= 2; i++) {
+                    const x = this.road.x + (this.road.width / 3) * i;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.height);
+                    this.ctx.stroke();
+                }
+            }
+            
+            renderObstacles() {
+                for (const obstacle of this.obstacles) {
+                    if (obstacle.hit) continue;
+                    
+                    this.ctx.fillStyle = obstacle.color;
+                    this.ctx.fillRect(
+                        obstacle.x - obstacle.width / 2,
+                        obstacle.y - obstacle.height / 2,
+                        obstacle.width,
+                        obstacle.height
+                    );
+                    
+                    this.ctx.fillStyle = '#000000';
+                    this.ctx.fillRect(
+                        obstacle.x - obstacle.width / 2 + 3,
+                        obstacle.y - obstacle.height / 2 + 3,
+                        obstacle.width - 6,
+                        obstacle.height - 6
+                    );
+                }
+            }
+            
+            renderPlayer() {
+                this.ctx.save();
+                
+                if (this.player.invincible && Math.floor(this.player.invincibleTimer / 3) % 2 === 0) {
+                    this.ctx.globalAlpha = 0.5;
+                }
+                
+                if (this.player.camouflage) {
+                    this.ctx.globalAlpha = 0.4;
+                }
+                
+                this.ctx.fillStyle = this.player.turbo ? '#222222' : '#111111';
+                this.ctx.fillRect(
+                    this.player.x - this.player.width / 2,
+                    this.player.y - this.player.height / 2,
+                    this.player.width,
+                    this.player.height
+                );
+                
+                this.ctx.fillStyle = '#ffaa00';
+                this.ctx.fillRect(
+                    this.player.x - this.player.width / 2 + 5,
+                    this.player.y - this.player.height / 2 + 5,
+                    8,
+                    this.player.height - 10
+                );
+                
+                this.ctx.fillStyle = this.player.turbo ? '#ff4444' : '#00b4ff';
+                this.ctx.fillRect(
+                    this.player.x - this.player.width / 2,
+                    this.player.y - this.player.height / 2,
+                    4,
+                    4
+                );
+                this.ctx.fillRect(
+                    this.player.x - this.player.width / 2,
+                    this.player.y + this.player.height / 2 - 4,
+                    4,
+                    4
+                );
+                
+                this.ctx.fillStyle = '#00b4ff';
+                this.ctx.fillRect(
+                    this.player.x + this.player.width / 2 - 8,
+                    this.player.y - this.player.height / 2,
+                    8,
+                    this.player.height
+                );
+                
+                this.ctx.restore();
+                
+                if (this.player.velocity > 30 && Math.random() < 0.3) {
+                    this.createTrailParticle();
+                }
+            }
+            
+            renderParticles() {
+                for (const p of this.particles) {
+                    this.ctx.globalAlpha = p.life / 100;
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                this.ctx.globalAlpha = 1;
+            }
+            
+            renderSpecialEffects() {
+                if (this.player.turbo && this.player.velocity > 100) {
+                    this.ctx.fillStyle = 'rgba(255, 100, 100, 0.05)';
+                    this.ctx.fillRect(0, 0, this.width, this.height);
+                }
+                
+                if (this.player.damage > 0) {
+                    const intensity = Math.sin(Date.now() / 200) * 0.1 * (this.player.damage / 100);
+                    this.ctx.fillStyle = `rgba(255, 0, 0, ${intensity})`;
+                    this.ctx.fillRect(0, 0, this.width, this.height);
+                }
+            }
+            
+            updateUI() {
+                document.getElementById('hudSpeed').textContent = `${Math.round(this.player.velocity)} km/h`;
+                document.getElementById('hudFuel').textContent = `${Math.round(this.player.fuel)}%`;
+                document.getElementById('hudSystem').textContent = this.gameState;
+                document.getElementById('hudScore').textContent = this.score;
+                document.getElementById('hudDistance').textContent = `${Math.round(this.distance)} m`;
+                
+                document.getElementById('batmobileSpeed').textContent = `${Math.round(this.player.velocity)} km/h`;
+                document.getElementById('batmobileFuel').textContent = `${Math.round(this.player.fuel)}%`;
+                document.getElementById('batmobileSystems').textContent = this.gameState;
+                document.getElementById('batmobileDamage').textContent = `${Math.round(this.player.damage)}%`;
+                
+                document.getElementById('scoreValue').textContent = this.score;
+                document.getElementById('distanceValue').textContent = `${Math.round(this.distance)} m`;
+                document.getElementById('obstaclesValue').textContent = this.obstaclesAvoided;
+                document.getElementById('maxSpeedValue').textContent = `${Math.round(this.maxSpeed)} km/h`;
+                
+                const fuelElement = document.getElementById('batmobileFuel');
+                fuelElement.classList.toggle('fuel-warning', this.player.fuel < 20);
+                
+                const speedElement = document.getElementById('batmobileSpeed');
+                speedElement.classList.toggle('turbo-active', this.player.turbo);
+                
+                const camouflageBtn = document.getElementById('camouflageBtn');
+                camouflageBtn.classList.toggle('active', this.player.camouflage);
+                
+                const turboBtn = document.getElementById('turboBtn');
+                turboBtn.classList.toggle('active', this.player.turbo);
+                
+                const startBtn = document.getElementById('startBtn');
+                const stopBtn = document.getElementById('stopBtn');
+                startBtn.classList.toggle('active', this.gameState === 'RUNNING');
+                stopBtn.classList.toggle('active', this.gameState === 'PAUSED');
+            }
+            
+            log(message) {
+                const log = document.getElementById('batmobileLog');
+                log.innerHTML = `> ${message}<br>` + log.innerHTML;
+                
+                const logs = log.innerHTML.split('<br>');
+                if (logs.length > 6) {
+                    log.innerHTML = logs.slice(0, 6).join('<br>');
+                }
+            }
+            
+            start() {
+                if (this.gameState === 'RUNNING') return;
+                if (this.player.fuel <= 0) {
+                    this.log('Combustível insuficiente!');
+                    return;
+                }
+                
+                this.gameState = 'RUNNING';
+                this.player.velocity = 40;
+                this.log('Sistemas online');
+                this.log('Motor iniciado');
+            }
+            
+            stop() {
+                if (this.gameState !== 'RUNNING') return;
+                this.gameState = 'PAUSED';
+                this.player.velocity = 0;
+                this.player.turbo = false;
+                this.log('Sistemas em pausa');
+            }
+            
+            toggleTurbo() {
+                if (this.gameState !== 'RUNNING') {
+                    this.log('Ligue o motor primeiro');
+                    return;
+                }
+                
+                this.player.turbo = !this.player.turbo;
+                this.log(`Turbo ${this.player.turbo ? 'ativado' : 'desativado'}`);
+            }
+            
+            toggleCamouflage() {
+                this.player.camouflage = !this.player.camouflage;
+                this.log(`Camuflagem ${this.player.camouflage ? 'ativada' : 'desativada'}`);
+            }
+            
+            showGameOver(reason) {
+                this.gameOver = true;
+                this.gameState = 'GAME_OVER';
+                document.getElementById('gameOverReason').textContent = reason;
+                document.getElementById('finalScore').textContent = this.score;
+                document.getElementById('finalDistance').textContent = Math.round(this.distance);
+                document.getElementById('gameOverScreen').style.display = 'flex';
+                this.log(`Game Over: ${reason}`);
+            }
+            
+            setupInput() {
+                window.addEventListener('keydown', (e) => {
+                    const key = e.key.toLowerCase();
+                    this.keys[key] = true;
+                    this.updateInput();
+                    
+                    if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) {
+                        e.preventDefault();
+                    }
+                    
+                    if (key === ' ' && this.gameState === 'RUNNING') {
+                        this.toggleTurbo();
+                    }
+                    
+                    if (key === 'c') {
+                        this.toggleCamouflage();
+                    }
+                    
+                    if (key === 'r') {
+                        this.resetPosition();
+                    }
+                });
+                
+                window.addEventListener('keyup', (e) => {
+                    this.keys[e.key.toLowerCase()] = false;
+                    this.updateInput();
+                });
+            }
+            
+            updateInput() {
+                this.input.left = this.keys['a'] || this.keys['arrowleft'];
+                this.input.right = this.keys['d'] || this.keys['arrowright'];
+                this.input.up = this.keys['w'] || this.keys['arrowup'];
+                this.input.down = this.keys['s'] || this.keys['arrowdown'];
+            }
+            
+            setupButtonControls() {
+                const buttons = {
+                    leftBtn: 'left',
+                    rightBtn: 'right',
+                    upBtn: 'up',
+                    downBtn: 'down'
+                };
+                
+                for (const [btnId, direction] of Object.entries(buttons)) {
+                    const btn = document.getElementById(btnId);
+                    if (!btn) continue;
+                    
+                    btn.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        this.input[direction] = true;
+                        btn.classList.add('active');
+                    });
+                    
+                    btn.addEventListener('mouseup', () => {
+                        this.input[direction] = false;
+                        btn.classList.remove('active');
+                    });
+                    
+                    btn.addEventListener('mouseleave', () => {
+                        this.input[direction] = false;
+                        btn.classList.remove('active');
+                    });
+                    
+                    btn.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        this.input[direction] = true;
+                        btn.classList.add('active');
+                    });
+                    
+                    btn.addEventListener('touchend', (e) => {
+                        e.preventDefault();
+                        this.input[direction] = false;
+                        btn.classList.remove('active');
+                    });
+                }
+            }
+            
+            setupMobileControls() {
+                const joystick = document.getElementById('mobileJoystick');
+                const knob = document.getElementById('mobileJoystickKnob');
+                const turboBtn = document.getElementById('mobileTurboBtn');
+                const brakeBtn = document.getElementById('mobileBrakeBtn');
+                
+                if (!joystick) return;
+                
+                let isDragging = false;
+                let startX, startY;
+                let knobX = 0, knobY = 0;
+                const maxDistance = 30;
+                
+                const startDrag = (x, y) => {
+                    isDragging = true;
+                    const rect = joystick.getBoundingClientRect();
+                    startX = rect.left + rect.width / 2;
+                    startY = rect.top + rect.height / 2;
+                };
+                
+                const updateDrag = (x, y) => {
+                    if (!isDragging) return;
+                    
+                    const dx = x - startX;
+                    const dy = y - startY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > maxDistance) {
+                        const angle = Math.atan2(dy, dx);
+                        knobX = Math.cos(angle) * maxDistance;
+                        knobY = Math.sin(angle) * maxDistance;
+                    } else {
+                        knobX = dx;
+                        knobY = dy;
+                    }
+                    
+                    knob.style.transform = `translate(${knobX}px, ${knobY}px)`;
+                    
+                    this.input.left = knobX < -10;
+                    this.input.right = knobX > 10;
+                    this.input.up = knobY < -10;
+                    this.input.down = knobY > 10;
+                };
+                
+                const endDrag = () => {
+                    isDragging = false;
+                    knobX = knobY = 0;
+                    knob.style.transform = 'translate(0, 0)';
+                    this.input.left = this.input.right = this.input.up = this.input.down = false;
+                };
+                
+                joystick.addEventListener('mousedown', (e) => {
+                    startDrag(e.clientX, e.clientY);
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    updateDrag(e.clientX, e.clientY);
+                });
+                
+                document.addEventListener('mouseup', endDrag);
+                
+                joystick.addEventListener('touchstart', (e) => {
+                    const touch = e.touches[0];
+                    startDrag(touch.clientX, touch.clientY);
+                });
+                
+                document.addEventListener('touchmove', (e) => {
+                    if (!isDragging) return;
+                    const touch = e.touches[0];
+                    updateDrag(touch.clientX, touch.clientY);
+                });
+                
+                document.addEventListener('touchend', endDrag);
+                document.addEventListener('touchcancel', endDrag);
+                
+                if (turboBtn) {
+                    turboBtn.addEventListener('click', () => this.toggleTurbo());
+                    turboBtn.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        this.toggleTurbo();
+                    });
+                }
+                
+                if (brakeBtn) {
+                    brakeBtn.addEventListener('click', () => {
+                        this.input.down = true;
+                        setTimeout(() => {
+                            this.input.down = false;
+                        }, 300);
+                    });
+                    brakeBtn.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        this.input.down = true;
+                        setTimeout(() => {
+                            this.input.down = false;
+                        }, 300);
+                    });
+                }
+            }
+            
+            resetPosition() {
+                this.player.x = this.width / 2;
+                this.player.lane = 1;
+                this.log('Posição resetada');
+            }
+            
+            restart() {
+                this.gameOver = false;
+                this.gameState = 'READY';
+                this.score = 0;
+                this.distance = 0;
+                this.maxSpeed = 0;
+                this.obstaclesAvoided = 0;
+                
+                this.player.velocity = 0;
+                this.player.turbo = false;
+                this.player.camouflage = false;
+                this.player.fuel = 100;
+                this.player.damage = 0;
+                this.player.invincible = false;
+                this.player.invincibleTimer = 0;
+                this.player.lane = 1;
+                
+                this.obstacles = [];
+                this.particles = [];
+                this.obstacleSpawnTimer = 0;
+                this.obstacleSpawnRate = 180;
+                
+                this.input.left = this.input.right = this.input.up = this.input.down = false;
+                this.keys = {};
+                
+                document.getElementById('gameOverScreen').style.display = 'none';
+                
+                this.log('Jogo reiniciado');
+                this.log('Aguardando ignição...');
+                
+                requestAnimationFrame((t) => this.gameLoop(t));
+            }
+        }
+        
+        let gameEngine;
+        
+        function restartGame() {
+            if (gameEngine) {
+                gameEngine.restart();
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            gameEngine = new GameEngine();
+        });
+    </script>
+</body>
+</html>
