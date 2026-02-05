@@ -68,7 +68,7 @@
             100% { text-shadow: 0 0 5px #ffd700; }
         }
 
-        /* ===== MAIN CONTAINER ===== */
+        /* ===== MAIN CONTAINER - PROPORÇÃO 2:1 ===== */
         .container {
             display: flex;
             flex-direction: column;
@@ -80,11 +80,11 @@
             padding: 0 10px;
         }
 
-        /* ===== SIMULATION VIEWPORT ===== */
+        /* JOGO (2 partes) - MAIOR */
         .simulation-viewport {
             position: relative;
             width: 100%;
-            height: 50%; /* Reduzido para dar espaço ao painel */
+            height: 66.66%; /* 2/3 da tela = 66.66% */
             min-height: 250px;
             border: 2px solid #1a3a5f;
             border-radius: 8px;
@@ -103,6 +103,23 @@
             z-index: 1;
         }
 
+        /* PAINEL DE CONTROLE (1 parte) - MENOR */
+        .vehicle-control-panel {
+            background: linear-gradient(145deg, #0d1522, #08101a);
+            border: 1px solid #1a3a5f;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 5px 20px rgba(0, 30, 60, 0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+            height: 33.33%; /* 1/3 da tela = 33.33% */
+        }
+
+        /* ===== HUD OVERLAY ===== */
         .crt-overlay {
             position: absolute;
             top: 0;
@@ -116,7 +133,6 @@
             opacity: 0.2;
         }
 
-        /* ===== HUD OVERLAY ===== */
         .hud-overlay {
             position: absolute;
             top: 0;
@@ -220,25 +236,10 @@
             to { transform: rotate(360deg); }
         }
 
-        /* ===== CONTROL PANEL ===== */
-        .vehicle-control-panel {
-            background: linear-gradient(145deg, #0d1522, #08101a);
-            border: 1px solid #1a3a5f;
-            border-radius: 8px;
-            padding: 12px;
-            box-shadow: 0 5px 20px rgba(0, 30, 60, 0.4);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            flex: 1;
-            overflow-y: auto;
-            min-height: 0;
-            height: 50%; /* Aumentado para ocupar a metade inferior */
-        }
-
+        /* ===== PAINEL COMPACTO ===== */
         .panel-title {
             color: #00d9ff;
-            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
             margin-bottom: 5px;
             display: flex;
             align-items: center;
@@ -246,19 +247,19 @@
             flex-wrap: wrap;
         }
 
-        /* ===== STATUS COMPACT ===== */
+        /* STATUS COMPACT */
         .status-compact {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: 6px;
+            margin-bottom: 6px;
         }
 
         .status-item-compact {
             background-color: rgba(10, 25, 47, 0.8);
             border: 1px solid #1a4a7a;
             border-radius: 5px;
-            padding: 8px;
+            padding: 6px;
             transition: all 0.3s;
             display: flex;
             flex-direction: column;
@@ -267,45 +268,45 @@
 
         .status-label-compact {
             color: #7ab8ff;
-            font-size: 0.65rem;
-            margin-bottom: 3px;
+            font-size: 0.6rem;
+            margin-bottom: 2px;
             text-transform: uppercase;
-            letter-spacing: 0.6px;
-            line-height: 1.2;
+            letter-spacing: 0.5px;
+            line-height: 1.1;
         }
 
         .status-value-compact {
             color: #ffffff;
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: bold;
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
             line-height: 1.2;
         }
 
-        /* ===== CONTROLS COMPACT ===== */
+        /* CONTROLES COMPACT */
         .vehicle-controls-compact {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin: 6px 0;
+            gap: 6px;
+            margin: 4px 0;
         }
 
         .control-btn-compact {
             background: linear-gradient(145deg, #003366, #001a33);
             border: 1px solid #1a4a7a;
             color: #ffffff;
-            padding: 10px 6px;
+            padding: 8px 4px;
             border-radius: 6px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: bold;
             cursor: pointer;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 3px;
             transition: all 0.2s;
-            min-height: 60px;
+            min-height: 55px;
         }
 
         .control-btn-compact:hover {
@@ -325,32 +326,16 @@
         }
 
         .control-btn-compact i {
-            font-size: 1rem;
+            font-size: 0.9rem;
         }
 
-        .control-btn-compact:nth-child(1) i {
-            color: #00ff88;
-        }
-
-        .control-btn-compact:nth-child(2) i {
-            color: #ff4444;
-        }
-
-        .control-btn-compact:nth-child(3) i {
-            color: #ffaa00;
-        }
-
-        .control-btn-compact:nth-child(4) i {
-            color: #aa66ff;
-        }
-
-        /* ===== SCORE DISPLAY COMPACT ===== */
+        /* SCORE DISPLAY COMPACT */
         .score-display-compact {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-bottom: 10px;
-            padding: 8px 10px;
+            gap: 6px;
+            margin-bottom: 8px;
+            padding: 6px 8px;
             background: rgba(10, 25, 47, 0.8);
             border: 1px solid #1a4a7a;
             border-radius: 6px;
@@ -362,46 +347,46 @@
 
         .score-label-compact {
             color: #7ab8ff;
-            font-size: 0.6rem;
+            font-size: 0.55rem;
             text-transform: uppercase;
-            letter-spacing: 0.7px;
-            margin-bottom: 3px;
-            line-height: 1.2;
+            letter-spacing: 0.6px;
+            margin-bottom: 2px;
+            line-height: 1.1;
         }
 
         .score-value-compact {
             color: #ffffff;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: bold;
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
             line-height: 1.2;
         }
 
-        /* ===== DIRECTION CONTROLS ===== */
+        /* DIRECTION CONTROLS */
         .direction-controls-compact {
-            display: flex;
+            display: none; /* Escondido no mobile */
             flex-direction: column;
             align-items: center;
-            gap: 6px;
-            margin: 8px 0;
+            gap: 5px;
+            margin: 5px 0;
         }
 
         .direction-row-compact {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             justify-content: center;
             width: 100%;
-            max-width: 200px;
+            max-width: 180px;
         }
 
         .direction-btn-compact {
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             background: linear-gradient(145deg, #003366, #001a33);
             border: 2px solid #1a4a7a;
             color: #ffffff;
             border-radius: 50%;
-            font-size: 1.2rem;
+            font-size: 1rem;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -412,90 +397,40 @@
             user-select: none;
         }
 
-        .direction-btn-compact:hover {
-            border-color: #00b4ff;
-        }
-
-        .direction-btn-compact:active {
-            background: linear-gradient(145deg, #0066cc, #004488);
-            border-color: #00b4ff;
-            transform: scale(0.95);
-            box-shadow: 0 0 15px rgba(0, 180, 255, 0.5);
-        }
-
-        .direction-btn-compact.active {
-            background: linear-gradient(145deg, #0066cc, #004488);
-            border-color: #00b4ff;
-            box-shadow: 0 0 15px rgba(0, 180, 255, 0.7);
-        }
-
-        /* ===== LOG COMPACT ===== */
+        /* LOG COMPACT */
         .system-log-compact {
             background-color: rgba(5, 15, 30, 0.9);
             border: 1px solid #1a4a7a;
             border-radius: 6px;
-            padding: 10px;
-            margin-top: 8px;
+            padding: 8px;
+            margin-top: 5px;
             flex: 1;
-            min-height: 100px;
+            min-height: 80px;
+            max-height: 100px;
             display: flex;
             flex-direction: column;
         }
 
         .system-log-compact div:first-child {
             color: #00d9ff;
-            font-size: 0.75rem;
-            margin-bottom: 6px;
+            font-size: 0.7rem;
+            margin-bottom: 4px;
         }
 
         .log-content-compact {
             background-color: rgba(0, 0, 0, 0.7);
             border: 1px solid #0a3a5a;
             border-radius: 4px;
-            padding: 8px;
+            padding: 6px;
             flex: 1;
             overflow-y: auto;
             font-family: 'Courier New', monospace;
-            font-size: 0.75rem;
-            line-height: 1.3;
+            font-size: 0.7rem;
+            line-height: 1.2;
             color: #00ffaa;
         }
 
-        .log-content-compact::-webkit-scrollbar {
-            width: 5px;
-        }
-
-        .log-content-compact::-webkit-scrollbar-track {
-            background: rgba(10, 25, 47, 0.5);
-            border-radius: 3px;
-        }
-
-        .log-content-compact::-webkit-scrollbar-thumb {
-            background: #1a4a7a;
-            border-radius: 3px;
-        }
-
-        /* ===== EFFECTS ===== */
-        .fuel-warning {
-            color: #ff4444 !important;
-            animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        .turbo-active {
-            color: #ffaa00 !important;
-            text-shadow: 0 0 10px rgba(255, 170, 0, 0.7) !important;
-        }
-
-        .camouflage-active {
-            color: #aa66ff !important;
-            text-shadow: 0 0 10px rgba(170, 102, 255, 0.7) !important;
-        }
-
+        /* ===== GAME OVER ===== */
         .game-over {
             position: absolute;
             top: 0;
@@ -546,9 +481,9 @@
 
         /* ===== MOBILE CONTROLS ===== */
         .mobile-controls {
-            display: none;
+            display: flex;
             position: fixed;
-            bottom: 15px;
+            bottom: 10px;
             left: 10px;
             right: 10px;
             z-index: 20;
@@ -558,8 +493,8 @@
         }
 
         .mobile-joystick {
-            width: 100px;
-            height: 100px;
+            width: 90px;
+            height: 90px;
             border-radius: 50%;
             background: rgba(10, 25, 47, 0.7);
             border: 2px solid rgba(0, 180, 255, 0.4);
@@ -570,8 +505,8 @@
 
         .mobile-joystick-knob {
             position: absolute;
-            width: 40px;
-            height: 40px;
+            width: 35px;
+            height: 35px;
             border-radius: 50%;
             background: linear-gradient(145deg, #0066cc, #004488);
             border: 2px solid #00b4ff;
@@ -584,18 +519,18 @@
         .mobile-action-buttons {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             pointer-events: auto;
         }
 
         .mobile-action-btn {
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             background: linear-gradient(145deg, #003366, #001a33);
             border: 2px solid #ffaa00;
             color: white;
-            font-size: 1rem;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -617,40 +552,74 @@
             line-height: 1.4;
         }
 
+        /* ===== EFFECTS ===== */
+        .fuel-warning {
+            color: #ff4444 !important;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .turbo-active {
+            color: #ffaa00 !important;
+            text-shadow: 0 0 10px rgba(255, 170, 0, 0.7) !important;
+        }
+
+        .camouflage-active {
+            color: #aa66ff !important;
+            text-shadow: 0 0 10px rgba(170, 102, 255, 0.7) !important;
+        }
+
         /* ===== RESPONSIVE DESIGN ===== */
-        /* REMOVIDAS AS MEDIA QUERIES QUE DEFINEM LAYOUT HORIZONTAL */
-        
-        /* Mantemos apenas ajustes de tamanho para telas maiores */
         @media (min-width: 768px) {
             .container {
-                /* Mantemos layout vertical */
-                height: 85vh;
+                height: 80vh;
             }
             
             .simulation-viewport {
-                height: 55%;
+                height: 66.66%;
                 min-height: 300px;
             }
             
             .vehicle-control-panel {
-                height: 45%;
-                min-height: 300px;
+                height: 33.33%;
+                min-height: 200px;
+                padding: 15px;
             }
             
             .score-display-compact {
                 grid-template-columns: repeat(4, 1fr);
             }
             
-            .direction-btn-compact {
-                width: 55px;
-                height: 55px;
-                font-size: 1.3rem;
+            /* Mostrar controles de direção no desktop */
+            .direction-controls-compact {
+                display: flex;
             }
             
+            /* Ajustar tamanhos para desktop */
             .control-btn-compact {
-                padding: 12px 8px;
-                min-height: 70px;
-                font-size: 0.85rem;
+                padding: 10px 6px;
+                min-height: 65px;
+                font-size: 0.8rem;
+            }
+            
+            .control-btn-compact i {
+                font-size: 1rem;
+            }
+            
+            .status-item-compact {
+                padding: 8px;
+            }
+            
+            .status-label-compact {
+                font-size: 0.65rem;
+            }
+            
+            .status-value-compact {
+                font-size: 1rem;
             }
             
             .hud-item {
@@ -671,180 +640,75 @@
                 height: 70px;
             }
             
-            /* Mostramos controles de direção no desktop */
-            .direction-controls-compact {
-                display: flex;
-            }
-            
-            /* Escondemos controles mobile */
+            /* Esconder controles mobile no desktop */
             .mobile-controls {
                 display: none;
             }
+            
+            .system-log-compact {
+                max-height: 120px;
+            }
         }
 
-        @media (max-width: 768px) {
-            body {
-                padding: 5px;
-            }
-            
+        @media (max-width: 767px) {
             .container {
-                padding: 0 5px;
+                height: 82vh;
                 gap: 8px;
-                height: 90vh;
-                max-height: none;
-            }
-            
-            .header {
-                margin-bottom: 8px;
-                padding: 0 5px;
             }
             
             .simulation-viewport {
-                height: 50%;
+                height: 66.66%;
                 min-height: 200px;
             }
             
             .vehicle-control-panel {
-                height: 50%;
+                height: 33.33%;
                 padding: 10px;
-                gap: 10px;
-            }
-            
-            .hud-item {
-                min-width: 65px;
-                padding: 4px 6px;
-            }
-            
-            .hud-label {
-                font-size: 0.55rem;
-            }
-            
-            .hud-value {
-                font-size: 0.8rem;
-            }
-            
-            .radar-container {
-                width: 50px;
-                height: 50px;
-            }
-            
-            /* Mostramos controles mobile em telas pequenas */
-            .mobile-controls {
-                display: flex;
-            }
-            
-            /* Escondemos controles de direção desktop */
-            .direction-controls-compact {
-                display: none;
-            }
-            
-            .log-content-compact {
-                height: 80px;
-                font-size: 0.7rem;
-                padding: 6px;
-            }
-            
-            .control-btn-compact {
-                min-height: 55px;
-                font-size: 0.75rem;
-                padding: 8px 4px;
-            }
-            
-            .status-value-compact {
-                font-size: 0.9rem;
-            }
-            
-            .score-display-compact {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .simulation-viewport {
-                height: 45%;
-                min-height: 180px;
-            }
-            
-            .vehicle-control-panel {
-                height: 55%;
-            }
-            
-            .title {
-                font-size: 1.3rem;
-            }
-            
-            .subtitle {
-                font-size: 0.75rem;
-            }
-            
-            .bat-logo {
-                font-size: 1.5rem;
-            }
-            
-            .panel-title {
-                font-size: 1rem;
+                gap: 8px;
             }
             
             .status-compact {
-                grid-template-columns: 1fr;
-                gap: 6px;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 4px;
             }
             
             .status-item-compact {
-                padding: 6px;
+                padding: 4px;
             }
             
             .status-label-compact {
-                font-size: 0.6rem;
+                font-size: 0.5rem;
             }
             
             .status-value-compact {
-                font-size: 0.85rem;
+                font-size: 0.75rem;
             }
             
-            .mobile-joystick {
-                width: 90px;
-                height: 90px;
+            .vehicle-controls-compact {
+                gap: 4px;
             }
             
-            .mobile-joystick-knob {
-                width: 35px;
-                height: 35px;
+            .control-btn-compact {
+                padding: 6px 3px;
+                min-height: 50px;
+                font-size: 0.65rem;
             }
             
-            .mobile-action-btn {
-                width: 45px;
-                height: 45px;
-                font-size: 0.9rem;
+            .control-btn-compact i {
+                font-size: 0.8rem;
             }
             
             .score-display-compact {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 6px;
-                padding: 6px 8px;
+                padding: 4px 6px;
+                gap: 4px;
             }
             
             .score-label-compact {
-                font-size: 0.55rem;
+                font-size: 0.5rem;
             }
             
             .score-value-compact {
-                font-size: 0.8rem;
-            }
-        }
-
-        @media (max-width: 360px) {
-            .simulation-viewport {
-                height: 40%;
-                min-height: 160px;
-            }
-            
-            .vehicle-control-panel {
-                height: 60%;
-            }
-            
-            .title {
-                font-size: 1.1rem;
+                font-size: 0.75rem;
             }
             
             .hud-item {
@@ -860,30 +724,118 @@
                 font-size: 0.75rem;
             }
             
-            .control-btn-compact {
-                font-size: 0.7rem;
-                min-height: 50px;
-                padding: 6px 3px;
+            .radar-container {
+                width: 50px;
+                height: 50px;
             }
             
-            .control-btn-compact i {
-                font-size: 0.9rem;
+            .log-content-compact {
+                font-size: 0.6rem;
+                padding: 4px;
+            }
+            
+            .system-log-compact div:first-child {
+                font-size: 0.65rem;
+            }
+            
+            /* Mostrar controles mobile */
+            .mobile-controls {
+                display: flex;
+            }
+            
+            /* Esconder controles de direção desktop */
+            .direction-controls-compact {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                height: 85vh;
+            }
+            
+            .simulation-viewport {
+                height: 66.66%;
+                min-height: 180px;
+            }
+            
+            .vehicle-control-panel {
+                height: 33.33%;
+            }
+            
+            .title {
+                font-size: 1.3rem;
+            }
+            
+            .subtitle {
+                font-size: 0.75rem;
+            }
+            
+            .bat-logo {
+                font-size: 1.5rem;
+            }
+            
+            .panel-title {
+                font-size: 0.85rem;
+            }
+            
+            .status-compact {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 4px;
+            }
+            
+            .mobile-joystick {
+                width: 80px;
+                height: 80px;
+            }
+            
+            .mobile-joystick-knob {
+                width: 30px;
+                height: 30px;
+            }
+            
+            .mobile-action-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .simulation-viewport {
+                height: 66.66%;
+                min-height: 160px;
+            }
+            
+            .vehicle-control-panel {
+                height: 33.33%;
+            }
+            
+            .title {
+                font-size: 1.1rem;
+            }
+            
+            .status-compact {
+                grid-template-columns: 1fr;
+                gap: 3px;
             }
         }
 
         /* Para telas muito altas */
         @media (min-height: 800px) {
             .container {
-                height: 80vh;
-                max-height: 900px;
+                height: 75vh;
+                max-height: 850px;
             }
             
             .simulation-viewport {
-                height: 50%;
+                height: 66.66%;
+                min-height: 350px;
             }
             
             .vehicle-control-panel {
-                height: 50%;
+                height: 33.33%;
+                min-height: 250px;
             }
         }
     </style>
@@ -898,7 +850,7 @@
     </div>
 
     <div class="container">
-        <!-- Viewport de Simulação (PARTE SUPERIOR) -->
+        <!-- Viewport de Simulação (2 PARTES - MAIOR) -->
         <div class="simulation-viewport">
             <canvas id="gameCanvas"></canvas>
             <div class="crt-overlay"></div>
@@ -950,7 +902,7 @@
             </div>
         </div>
 
-        <!-- Painel de Controle Compacto (PARTE INFERIOR) -->
+        <!-- Painel de Controle Compacto (1 PARTE - MENOR) -->
         <div class="vehicle-control-panel">
             <!-- Score Display Compacto -->
             <div class="score-display-compact">
@@ -1079,7 +1031,6 @@
                 this.canvas = document.getElementById('gameCanvas');
                 this.ctx = this.canvas.getContext('2d');
                 
-                // Reduzir dimensões para performance
                 this.width = this.canvas.width = this.canvas.offsetWidth;
                 this.height = this.canvas.height = this.canvas.offsetHeight;
                 
@@ -1092,7 +1043,7 @@
                 this.obstaclesAvoided = 0;
                 this.gameOver = false;
                 
-                // Jogador com velocidade reduzida
+                // Jogador
                 this.player = {
                     x: this.width / 2,
                     y: this.height * 0.8,
@@ -1191,7 +1142,6 @@
                 const deltaTime = timestamp - this.lastTime;
                 this.lastTime = timestamp;
                 
-                // Limpar canvas
                 this.ctx.clearRect(0, 0, this.width, this.height);
                 
                 if (this.gameState === 'RUNNING' && !this.gameOver) {
