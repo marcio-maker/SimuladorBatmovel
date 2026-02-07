@@ -1023,7 +1023,7 @@
 
     <script>
         // ===========================================
-        // SISTEMA DO BATMÓVEL - MOTOR DE JOGO
+        // SISTEMA DO BATMÓVEL - MOTOR DE JOGO REALISTA
         // ===========================================
 
         class GameEngine {
@@ -1042,25 +1042,28 @@
                 this.maxSpeed = 0;
                 this.obstaclesAvoided = 0;
                 this.gameOver = false;
+                this.timeOfDay = 'night'; // night, dusk, dawn
                 
-                // Jogador
+                // Jogador - Batmóvel Realista
                 this.player = {
                     x: this.width / 2,
                     y: this.height * 0.8,
-                    width: Math.min(80, this.width * 0.12),
-                    height: Math.min(40, this.width * 0.06),
+                    width: Math.min(120, this.width * 0.18),
+                    height: Math.min(60, this.width * 0.09),
                     velocity: 0,
-                    maxVelocity: 200,
-                    acceleration: 0.15,
-                    deceleration: 0.1,
-                    moveSpeed: 5,
+                    maxVelocity: 320,
+                    acceleration: 0.25,
+                    deceleration: 0.15,
+                    moveSpeed: 8,
                     turbo: false,
                     camouflage: false,
                     fuel: 100,
                     damage: 0,
                     invincible: false,
                     invincibleTimer: 0,
-                    lane: 1
+                    lane: 1,
+                    headlights: true,
+                    brakeLights: false
                 };
                 
                 // Controles
@@ -1073,30 +1076,78 @@
                     turbo: false
                 };
                 
-                // Estrada
+                // Estrada Realista
                 this.road = {
-                    width: this.width * 0.7,
-                    x: this.width * 0.15,
+                    width: this.width * 0.8,
+                    x: this.width * 0.1,
                     lines: [],
-                    lineWidth: 2,
-                    lineLength: 20,
-                    lineGap: 40
+                    lineWidth: 3,
+                    lineLength: 25,
+                    lineGap: 30,
+                    color: '#333333',
+                    shoulderWidth: 40,
+                    shoulderColor: '#555555',
+                    hasCracks: true,
+                    cracks: []
                 };
                 
-                // Obstáculos
+                // Obstáculos Realistas
                 this.obstacles = [];
                 this.obstacleTypes = [
-                    { width: 50, height: 35, color: '#ff4444', score: 10 },
-                    { width: 45, height: 50, color: '#aa66ff', score: 15 },
-                    { width: 35, height: 35, color: '#ffaa00', score: 20 },
-                    { width: 60, height: 30, color: '#00ff88', score: 25 }
+                    { 
+                        name: 'Carro de Polícia', 
+                        width: 80, 
+                        height: 45, 
+                        color: '#4a6fa5', 
+                        lightColor: '#3b7dff',
+                        score: 15 
+                    },
+                    { 
+                        name: 'Caminhão', 
+                        width: 110, 
+                        height: 55, 
+                        color: '#8b4513', 
+                        lightColor: '#ff9900',
+                        score: 25 
+                    },
+                    { 
+                        name: 'Sedan', 
+                        width: 70, 
+                        height: 40, 
+                        color: '#c0c0c0', 
+                        lightColor: '#ffffff',
+                        score: 10 
+                    },
+                    { 
+                        name: 'SUV', 
+                        width: 85, 
+                        height: 50, 
+                        color: '#2e8b57', 
+                        lightColor: '#00ff55',
+                        score: 20 
+                    },
+                    { 
+                        name: 'Moto', 
+                        width: 40, 
+                        height: 25, 
+                        color: '#dc143c', 
+                        lightColor: '#ff4444',
+                        score: 30 
+                    }
                 ];
                 this.obstacleSpawnTimer = 0;
-                this.obstacleSpawnRate = 180;
+                this.obstacleSpawnRate = 120;
                 
-                // Partículas
+                // Cenário Urbano
+                this.buildings = [];
+                this.trees = [];
+                this.lights = [];
+                this.initCityscape();
+                
+                // Partículas Realistas
                 this.particles = [];
-                this.maxParticles = 100;
+                this.maxParticles = 150;
+                this.smokeParticles = [];
                 
                 // Inicializar
                 this.init();
@@ -1109,7 +1160,8 @@
                 this.setupButtonControls();
                 this.setupMobileControls();
                 this.initRoadLines();
-                this.log('Sistema WayneTech inicializado');
+                this.initRoadCracks();
+                this.log('Sistema WayneTech inicializado - Modo Realista Ativado');
                 requestAnimationFrame((t) => this.gameLoop(t));
             }
             
@@ -1119,23 +1171,101 @@
                 
                 this.player.x = this.width / 2;
                 this.player.y = this.height * 0.8;
-                this.player.width = Math.min(80, this.width * 0.12);
-                this.player.height = Math.min(40, this.width * 0.06);
+                this.player.width = Math.min(120, this.width * 0.18);
+                this.player.height = Math.min(60, this.width * 0.09);
                 
-                this.road.width = this.width * 0.7;
-                this.road.x = this.width * 0.15;
+                this.road.width = this.width * 0.8;
+                this.road.x = this.width * 0.1;
                 
                 this.initRoadLines();
+                this.initRoadCracks();
+                this.initCityscape();
             }
             
             initRoadLines() {
                 this.road.lines = [];
-                for (let i = 0; i < 15; i++) {
+                for (let i = 0; i < 20; i++) {
                     this.road.lines.push({
                         x: this.road.x + (this.road.width / 2),
-                        y: i * (this.road.lineLength + this.road.lineGap)
+                        y: i * (this.road.lineLength + this.road.lineGap),
+                        dashed: i % 2 === 0
                     });
                 }
+            }
+            
+            initRoadCracks() {
+                this.road.cracks = [];
+                for (let i = 0; i < 10; i++) {
+                    this.road.cracks.push({
+                        x: this.road.x + Math.random() * this.road.width,
+                        y: Math.random() * this.height * 2,
+                        width: 2 + Math.random() * 4,
+                        length: 20 + Math.random() * 60,
+                        angle: Math.random() * Math.PI
+                    });
+                }
+            }
+            
+            initCityscape() {
+                // Prédios
+                this.buildings = [];
+                const numBuildings = 8;
+                for (let i = 0; i < numBuildings; i++) {
+                    const side = i % 2 === 0 ? 'left' : 'right';
+                    const x = side === 'left' 
+                        ? this.road.x - 150 - Math.random() * 100
+                        : this.road.x + this.road.width + 50 + Math.random() * 100;
+                    
+                    this.buildings.push({
+                        x: x,
+                        y: this.height,
+                        width: 40 + Math.random() * 80,
+                        height: 80 + Math.random() * 200,
+                        color: this.getRandomBuildingColor(),
+                        windows: Math.floor(3 + Math.random() * 8),
+                        litWindows: Math.floor(Math.random() * 5)
+                    });
+                }
+                
+                // Árvores
+                this.trees = [];
+                for (let i = 0; i < 12; i++) {
+                    const side = i % 2 === 0 ? 'left' : 'right';
+                    const x = side === 'left' 
+                        ? this.road.x - 70 - Math.random() * 40
+                        : this.road.x + this.road.width + 30 + Math.random() * 40;
+                    
+                    this.trees.push({
+                        x: x,
+                        y: this.height,
+                        trunkHeight: 20 + Math.random() * 30,
+                        trunkWidth: 5 + Math.random() * 8,
+                        canopyHeight: 30 + Math.random() * 50,
+                        canopyWidth: 25 + Math.random() * 35,
+                        color: '#2d5016'
+                    });
+                }
+                
+                // Postes de luz
+                this.lights = [];
+                for (let i = 0; i < 15; i++) {
+                    const side = i % 2 === 0 ? 'left' : 'right';
+                    const x = side === 'left' 
+                        ? this.road.x - 30
+                        : this.road.x + this.road.width + 30;
+                    
+                    this.lights.push({
+                        x: x,
+                        y: i * 150,
+                        on: true,
+                        intensity: 0.7 + Math.random() * 0.3
+                    });
+                }
+            }
+            
+            getRandomBuildingColor() {
+                const colors = ['#3a506b', '#1c2541', '#0b132b', '#5d5d5d', '#4a4a4a', '#2d3047'];
+                return colors[Math.floor(Math.random() * colors.length)];
             }
             
             gameLoop(timestamp) {
@@ -1158,7 +1288,7 @@
             update(deltaTime) {
                 const delta = Math.min(deltaTime / 16.67, 2.0);
                 
-                // Movimento horizontal
+                // Movimento horizontal por faixas
                 if (this.input.left && this.player.lane > 0) {
                     this.player.lane--;
                     this.input.left = false;
@@ -1168,15 +1298,18 @@
                     this.input.right = false;
                 }
                 
-                // Posicionar baseado na faixa
+                // Posicionar baseado na faixa com movimento suave
                 const laneWidth = this.road.width / 3;
                 const targetX = this.road.x + laneWidth * 0.5 + (this.player.lane * laneWidth);
-                this.player.x += (targetX - this.player.x) * 0.1;
+                this.player.x += (targetX - this.player.x) * 0.15;
                 
-                // Acelerar
+                // Aceleração realista
                 if (this.gameState === 'RUNNING') {
-                    const acceleration = this.player.turbo ? this.player.acceleration * 1.5 : this.player.acceleration;
+                    const acceleration = this.player.turbo ? this.player.acceleration * 2.0 : this.player.acceleration;
                     this.player.velocity = Math.min(this.player.maxVelocity, this.player.velocity + acceleration * delta);
+                    
+                    // Luzes de freio
+                    this.player.brakeLights = this.input.down || this.player.velocity < 10;
                 }
                 
                 // Atualizar distância
@@ -1187,10 +1320,10 @@
                     this.maxSpeed = this.player.velocity;
                 }
                 
-                // Consumir combustível
+                // Consumir combustível de forma realista
                 if (this.player.velocity > 0) {
-                    const consumption = this.player.turbo ? 0.4 : 0.1;
-                    this.player.fuel = Math.max(0, this.player.fuel - consumption * (this.player.velocity / 1000) * delta);
+                    const consumption = this.player.turbo ? 0.8 : 0.15;
+                    this.player.fuel = Math.max(0, this.player.fuel - consumption * (this.player.velocity / 800) * delta);
                     
                     if (this.player.fuel <= 0) {
                         this.gameOver = true;
@@ -1204,6 +1337,9 @@
                 // Atualizar partículas
                 this.updateParticles(delta);
                 
+                // Atualizar fumaça do motor
+                this.updateSmoke(delta);
+                
                 // Atualizar invencibilidade
                 if (this.player.invincible) {
                     this.player.invincibleTimer -= delta;
@@ -1211,6 +1347,9 @@
                         this.player.invincible = false;
                     }
                 }
+                
+                // Atualizar cenário
+                this.updateCityscape(delta);
                 
                 // Atualizar UI
                 this.updateUI();
@@ -1225,7 +1364,7 @@
                 
                 for (let i = this.obstacles.length - 1; i >= 0; i--) {
                     const obstacle = this.obstacles[i];
-                    obstacle.y += (this.player.velocity / 50) * delta;
+                    obstacle.y += (this.player.velocity / 40) * delta;
                     
                     if (!obstacle.hit && !this.player.invincible && !this.player.camouflage) {
                         const playerRect = {
@@ -1251,7 +1390,7 @@
                     if (obstacle.y > this.height + 100) {
                         if (!obstacle.hit) {
                             this.obstaclesAvoided++;
-                            this.score += 5;
+                            this.score += 10;
                         }
                         this.obstacles.splice(i, 1);
                     }
@@ -1266,13 +1405,17 @@
                 
                 this.obstacles.push({
                     x: x,
-                    y: -50,
+                    y: -100,
                     width: type.width,
                     height: type.height,
                     color: type.color,
+                    lightColor: type.lightColor,
                     score: type.score,
+                    name: type.name,
                     lane: lane,
-                    hit: false
+                    hit: false,
+                    lightOn: Math.random() > 0.5,
+                    lightIntensity: 0.7 + Math.random() * 0.3
                 });
             }
             
@@ -1284,21 +1427,21 @@
             }
             
             onCollision(obstacle) {
-                this.player.damage += 20;
-                this.score += Math.max(1, obstacle.score - 5);
+                this.player.damage += 25;
+                this.score += Math.max(1, obstacle.score - 10);
                 
                 this.createExplosion(obstacle.x, obstacle.y, obstacle.color);
                 
                 this.player.invincible = true;
-                this.player.invincibleTimer = 30;
+                this.player.invincibleTimer = 40;
                 
-                this.player.velocity *= 0.6;
+                this.player.velocity *= 0.5;
                 
                 if (this.player.damage >= 100) {
                     this.gameOver = true;
-                    this.showGameOver('Dano crítico!');
+                    this.showGameOver(`Colisão fatal com ${obstacle.name}!`);
                 } else {
-                    this.log(`Colisão! Dano: ${this.player.damage}%`);
+                    this.log(`Colisão com ${obstacle.name}! Dano: ${this.player.damage}%`);
                 }
             }
             
@@ -1315,77 +1458,240 @@
                 }
             }
             
+            updateSmoke(delta) {
+                // Gerar fumaça do escapamento
+                if (this.player.velocity > 20 && this.gameState === 'RUNNING') {
+                    if (Math.random() < 0.3) {
+                        this.smokeParticles.push({
+                            x: this.player.x - this.player.width * 0.4 + Math.random() * this.player.width * 0.8,
+                            y: this.player.y + this.player.height * 0.3,
+                            vx: (Math.random() - 0.5) * 0.5,
+                            vy: -Math.random() * 1.5,
+                            size: 3 + Math.random() * 5,
+                            life: 100 + Math.random() * 100,
+                            color: this.player.turbo ? 'rgba(255, 100, 100, 0.8)' : 'rgba(100, 100, 100, 0.6)'
+                        });
+                    }
+                }
+                
+                // Atualizar fumaça
+                for (let i = this.smokeParticles.length - 1; i >= 0; i--) {
+                    const p = this.smokeParticles[i];
+                    p.x += p.vx * delta;
+                    p.y += p.vy * delta;
+                    p.life -= delta * 0.5;
+                    p.size += 0.05 * delta;
+                    
+                    if (p.life <= 0) {
+                        this.smokeParticles.splice(i, 1);
+                    }
+                }
+            }
+            
+            updateCityscape(delta) {
+                // Mover prédios e árvores para criar efeito de movimento
+                const scrollSpeed = this.player.velocity / 800 * delta;
+                
+                this.lights.forEach(light => {
+                    light.y += scrollSpeed * 30;
+                    if (light.y > this.height + 100) {
+                        light.y = -100;
+                    }
+                });
+                
+                this.road.cracks.forEach(crack => {
+                    crack.y += scrollSpeed * 50;
+                    if (crack.y > this.height + 100) {
+                        crack.y = -100;
+                        crack.x = this.road.x + Math.random() * this.road.width;
+                    }
+                });
+            }
+            
             createExplosion(x, y, color) {
-                for (let i = 0; i < 15; i++) {
+                for (let i = 0; i < 25; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 12,
+                        vy: (Math.random() - 0.5) * 12 - 4,
+                        size: Math.random() * 4 + 2,
+                        life: 60 + Math.random() * 60,
+                        color: color,
+                        type: 'explosion'
+                    });
+                }
+                
+                // Adicionar fragmentos de metal
+                for (let i = 0; i < 10; i++) {
                     this.particles.push({
                         x: x,
                         y: y,
                         vx: (Math.random() - 0.5) * 8,
                         vy: (Math.random() - 0.5) * 8 - 2,
-                        size: Math.random() * 3 + 2,
-                        life: 50 + Math.random() * 50,
-                        color: color
+                        size: 1 + Math.random() * 2,
+                        life: 120 + Math.random() * 120,
+                        color: '#cccccc',
+                        type: 'metal'
                     });
                 }
             }
             
-            createTrailParticle() {
-                this.particles.push({
-                    x: this.player.x + (Math.random() - 0.5) * this.player.width,
-                    y: this.player.y + this.player.height / 2,
-                    vx: (Math.random() - 0.5) * 1,
-                    vy: Math.random() * 2 + 1,
-                    size: Math.random() * 2 + 1,
-                    life: 30 + Math.random() * 30,
-                    color: 'rgb(100, 100, 255)'
-                });
-            }
-            
             render() {
-                this.renderBackground();
+                this.renderSky();
+                this.renderCityscape();
                 this.renderRoad();
                 this.renderObstacles();
                 this.renderParticles();
+                this.renderSmoke();
                 this.renderPlayer();
                 this.renderSpecialEffects();
+                this.renderHeadlights();
             }
             
-            renderBackground() {
+            renderSky() {
+                // Céu noturno de Gotham
                 const gradient = this.ctx.createLinearGradient(0, 0, 0, this.height);
-                gradient.addColorStop(0, '#050810');
-                gradient.addColorStop(1, '#0a1525');
+                gradient.addColorStop(0, '#0a0a1a');
+                gradient.addColorStop(0.5, '#1a1a2e');
+                gradient.addColorStop(1, '#0f0f23');
                 this.ctx.fillStyle = gradient;
                 this.ctx.fillRect(0, 0, this.width, this.height);
                 
+                // Estrelas
                 this.ctx.fillStyle = '#ffffff';
-                this.ctx.globalAlpha = 0.3;
-                for (let i = 0; i < 30; i++) {
-                    const x = (i * 47) % this.width;
-                    const y = (i * 29) % (this.height * 0.5);
-                    this.ctx.fillRect(x, y, 1, 1);
+                this.ctx.globalAlpha = 0.6;
+                for (let i = 0; i < 50; i++) {
+                    const x = (i * 79) % this.width;
+                    const y = (i * 53) % (this.height * 0.7);
+                    const size = Math.random() * 1.5;
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, size, 0, Math.PI * 2);
+                    this.ctx.fill();
                 }
                 this.ctx.globalAlpha = 1;
+                
+                // Lua
+                this.ctx.fillStyle = '#f0f0f0';
+                this.ctx.beginPath();
+                this.ctx.arc(this.width * 0.85, this.height * 0.15, 25, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.fillStyle = '#e0e0e0';
+                this.ctx.beginPath();
+                this.ctx.arc(this.width * 0.82, this.height * 0.13, 8, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+            
+            renderCityscape() {
+                // Renderizar prédios
+                this.buildings.forEach(building => {
+                    this.ctx.fillStyle = building.color;
+                    this.ctx.fillRect(building.x - building.width/2, building.y - building.height, building.width, building.height);
+                    
+                    // Janelas
+                    this.ctx.fillStyle = building.litWindows > 0 ? '#ffcc00' : '#1a1a1a';
+                    const windowWidth = building.width / (building.windows + 1);
+                    const windowHeight = building.height / 15;
+                    
+                    for (let i = 1; i <= building.windows; i++) {
+                        for (let j = 1; j <= 10; j++) {
+                            if (Math.random() < 0.3 || j <= building.litWindows) {
+                                this.ctx.fillRect(
+                                    building.x - building.width/2 + i * windowWidth - windowWidth/2,
+                                    building.y - building.height + j * (building.height/12),
+                                    windowWidth * 0.7,
+                                    windowHeight * 0.7
+                                );
+                            }
+                        }
+                    }
+                });
+                
+                // Renderizar árvores
+                this.trees.forEach(tree => {
+                    // Tronco
+                    this.ctx.fillStyle = '#5d4037';
+                    this.ctx.fillRect(
+                        tree.x - tree.trunkWidth/2,
+                        tree.y - tree.trunkHeight,
+                        tree.trunkWidth,
+                        tree.trunkHeight
+                    );
+                    
+                    // Copa
+                    this.ctx.fillStyle = tree.color;
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(
+                        tree.x,
+                        tree.y - tree.trunkHeight - tree.canopyHeight/2,
+                        tree.canopyWidth/2,
+                        tree.canopyHeight/2,
+                        0, 0, Math.PI * 2
+                    );
+                    this.ctx.fill();
+                });
+                
+                // Postes de luz
+                this.lights.forEach(light => {
+                    // Poste
+                    this.ctx.fillStyle = '#555555';
+                    this.ctx.fillRect(light.x - 2, light.y - 80, 4, 80);
+                    
+                    // Luminária
+                    this.ctx.fillStyle = '#666666';
+                    this.ctx.fillRect(light.x - 8, light.y - 80, 16, 10);
+                    
+                    // Luz
+                    if (light.on) {
+                        const gradient = this.ctx.createRadialGradient(
+                            light.x, light.y - 75,
+                            0,
+                            light.x, light.y - 75,
+                            60
+                        );
+                        gradient.addColorStop(0, `rgba(255, 255, 200, ${light.intensity})`);
+                        gradient.addColorStop(1, 'rgba(255, 255, 200, 0)');
+                        
+                        this.ctx.fillStyle = gradient;
+                        this.ctx.beginPath();
+                        this.ctx.arc(light.x, light.y - 75, 60, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                });
             }
             
             renderRoad() {
-                this.ctx.fillStyle = '#1a1a2e';
+                // Acostamento
+                this.ctx.fillStyle = this.road.shoulderColor;
+                this.ctx.fillRect(this.road.x - this.road.shoulderWidth, 0, this.road.shoulderWidth, this.height);
+                this.ctx.fillRect(this.road.x + this.road.width, 0, this.road.shoulderWidth, this.height);
+                
+                // Asfalto
+                this.ctx.fillStyle = this.road.color;
                 this.ctx.fillRect(this.road.x, 0, this.road.width, this.height);
                 
-                this.ctx.strokeStyle = '#ffaa00';
+                // Rachaduras no asfalto
+                this.ctx.strokeStyle = '#444444';
                 this.ctx.lineWidth = 2;
-                this.ctx.beginPath();
-                this.ctx.moveTo(this.road.x, 0);
-                this.ctx.lineTo(this.road.x, this.height);
-                this.ctx.moveTo(this.road.x + this.road.width, 0);
-                this.ctx.lineTo(this.road.x + this.road.width, this.height);
-                this.ctx.stroke();
+                this.road.cracks.forEach(crack => {
+                    this.ctx.save();
+                    this.ctx.translate(crack.x, crack.y);
+                    this.ctx.rotate(crack.angle);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, 0);
+                    this.ctx.lineTo(0, crack.length);
+                    this.ctx.stroke();
+                    this.ctx.restore();
+                });
                 
-                this.ctx.strokeStyle = '#ffffff';
+                // Faixas da pista
+                this.ctx.strokeStyle = '#ffaa00';
                 this.ctx.lineWidth = this.road.lineWidth;
                 this.ctx.setLineDash([this.road.lineLength, this.road.lineGap]);
                 
                 for (let line of this.road.lines) {
-                    line.y += this.player.velocity / 80;
+                    line.y += this.player.velocity / 60;
                     if (line.y > this.height) {
                         line.y = -this.road.lineLength;
                     }
@@ -1398,7 +1704,8 @@
                 
                 this.ctx.setLineDash([]);
                 
-                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                // Divisórias de faixa
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
                 this.ctx.lineWidth = 1;
                 for (let i = 1; i <= 2; i++) {
                     const x = this.road.x + (this.road.width / 3) * i;
@@ -1413,6 +1720,7 @@
                 for (const obstacle of this.obstacles) {
                     if (obstacle.hit) continue;
                     
+                    // Corpo do veículo
                     this.ctx.fillStyle = obstacle.color;
                     this.ctx.fillRect(
                         obstacle.x - obstacle.width / 2,
@@ -1421,12 +1729,53 @@
                         obstacle.height
                     );
                     
-                    this.ctx.fillStyle = '#000000';
+                    // Janelas
+                    this.ctx.fillStyle = '#1a1a1a';
                     this.ctx.fillRect(
-                        obstacle.x - obstacle.width / 2 + 3,
-                        obstacle.y - obstacle.height / 2 + 3,
-                        obstacle.width - 6,
-                        obstacle.height - 6
+                        obstacle.x - obstacle.width / 2 + 5,
+                        obstacle.y - obstacle.height / 2 + 5,
+                        obstacle.width - 10,
+                        obstacle.height * 0.4
+                    );
+                    
+                    // Faróis
+                    if (obstacle.lightOn) {
+                        this.ctx.fillStyle = obstacle.lightColor;
+                        this.ctx.fillRect(
+                            obstacle.x - obstacle.width / 2 + 3,
+                            obstacle.y + obstacle.height / 2 - 8,
+                            6, 4
+                        );
+                        this.ctx.fillRect(
+                            obstacle.x + obstacle.width / 2 - 9,
+                            obstacle.y + obstacle.height / 2 - 8,
+                            6, 4
+                        );
+                    }
+                    
+                    // Rodas
+                    this.ctx.fillStyle = '#222222';
+                    // Rodas dianteiras
+                    this.ctx.fillRect(
+                        obstacle.x - obstacle.width / 2 + 8,
+                        obstacle.y - obstacle.height / 2 - 3,
+                        10, 6
+                    );
+                    this.ctx.fillRect(
+                        obstacle.x + obstacle.width / 2 - 18,
+                        obstacle.y - obstacle.height / 2 - 3,
+                        10, 6
+                    );
+                    // Rodas traseiras
+                    this.ctx.fillRect(
+                        obstacle.x - obstacle.width / 2 + 8,
+                        obstacle.y + obstacle.height / 2 - 3,
+                        10, 6
+                    );
+                    this.ctx.fillRect(
+                        obstacle.x + obstacle.width / 2 - 18,
+                        obstacle.y + obstacle.height / 2 - 3,
+                        10, 6
                     );
                 }
             }
@@ -1435,14 +1784,25 @@
                 this.ctx.save();
                 
                 if (this.player.invincible && Math.floor(this.player.invincibleTimer / 3) % 2 === 0) {
-                    this.ctx.globalAlpha = 0.5;
+                    this.ctx.globalAlpha = 0.6;
                 }
                 
                 if (this.player.camouflage) {
-                    this.ctx.globalAlpha = 0.4;
+                    this.ctx.globalAlpha = 0.3;
                 }
                 
-                this.ctx.fillStyle = this.player.turbo ? '#222222' : '#111111';
+                // Corpo principal do Batmóvel
+                const gradient = this.ctx.createLinearGradient(
+                    this.player.x - this.player.width/2,
+                    this.player.y,
+                    this.player.x + this.player.width/2,
+                    this.player.y
+                );
+                gradient.addColorStop(0, '#000000');
+                gradient.addColorStop(0.5, '#111111');
+                gradient.addColorStop(1, '#000000');
+                
+                this.ctx.fillStyle = gradient;
                 this.ctx.fillRect(
                     this.player.x - this.player.width / 2,
                     this.player.y - this.player.height / 2,
@@ -1450,46 +1810,145 @@
                     this.player.height
                 );
                 
-                this.ctx.fillStyle = '#ffaa00';
+                // Para-choque dianteiro
+                this.ctx.fillStyle = '#333333';
+                this.ctx.fillRect(
+                    this.player.x - this.player.width / 2,
+                    this.player.y - this.player.height / 2,
+                    this.player.width,
+                    8
+                );
+                
+                // Capô com detalhes
+                this.ctx.fillStyle = '#222222';
                 this.ctx.fillRect(
                     this.player.x - this.player.width / 2 + 5,
+                    this.player.y - this.player.height / 2 + 10,
+                    this.player.width - 10,
+                    this.player.height - 25
+                );
+                
+                // Emblema do Batman
+                this.ctx.fillStyle = '#ffd700';
+                this.ctx.beginPath();
+                this.ctx.arc(this.player.x, this.player.y - this.player.height / 2 + 20, 8, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Faróis
+                this.ctx.fillStyle = this.player.headlights ? '#ffffff' : '#666666';
+                this.ctx.fillRect(
+                    this.player.x - this.player.width / 2 + 15,
                     this.player.y - this.player.height / 2 + 5,
-                    8,
-                    this.player.height - 10
+                    12, 6
+                );
+                this.ctx.fillRect(
+                    this.player.x + this.player.width / 2 - 27,
+                    this.player.y - this.player.height / 2 + 5,
+                    12, 6
                 );
                 
-                this.ctx.fillStyle = this.player.turbo ? '#ff4444' : '#00b4ff';
+                // Luzes de freio
+                this.ctx.fillStyle = this.player.brakeLights ? '#ff0000' : '#990000';
                 this.ctx.fillRect(
-                    this.player.x - this.player.width / 2,
-                    this.player.y - this.player.height / 2,
-                    4,
-                    4
+                    this.player.x - this.player.width / 2 + 15,
+                    this.player.y + this.player.height / 2 - 10,
+                    10, 4
                 );
                 this.ctx.fillRect(
-                    this.player.x - this.player.width / 2,
-                    this.player.y + this.player.height / 2 - 4,
-                    4,
-                    4
+                    this.player.x + this.player.width / 2 - 25,
+                    this.player.y + this.player.height / 2 - 10,
+                    10, 4
                 );
                 
-                this.ctx.fillStyle = '#00b4ff';
+                // Escapamentos
+                this.ctx.fillStyle = this.player.turbo ? '#ff6600' : '#555555';
                 this.ctx.fillRect(
-                    this.player.x + this.player.width / 2 - 8,
-                    this.player.y - this.player.height / 2,
-                    8,
-                    this.player.height
+                    this.player.x - 8,
+                    this.player.y + this.player.height / 2 - 5,
+                    16, 4
                 );
+                
+                // Rodas
+                this.ctx.fillStyle = '#111111';
+                // Rodas dianteiras
+                this.ctx.fillRect(
+                    this.player.x - this.player.width / 2 + 10,
+                    this.player.y - this.player.height / 2 - 5,
+                    15, 8
+                );
+                this.ctx.fillRect(
+                    this.player.x + this.player.width / 2 - 25,
+                    this.player.y - this.player.height / 2 - 5,
+                    15, 8
+                );
+                // Rodas traseiras
+                this.ctx.fillStyle = '#222222';
+                this.ctx.fillRect(
+                    this.player.x - this.player.width / 2 + 10,
+                    this.player.y + this.player.height / 2 - 3,
+                    15, 8
+                );
+                this.ctx.fillRect(
+                    this.player.x + this.player.width / 2 - 25,
+                    this.player.y + this.player.height / 2 - 3,
+                    15, 8
+                );
+                
+                // Detalhes das rodas
+                this.ctx.fillStyle = '#444444';
+                this.ctx.beginPath();
+                this.ctx.arc(this.player.x - this.player.width / 2 + 17.5, this.player.y - this.player.height / 2 - 1, 4, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.beginPath();
+                this.ctx.arc(this.player.x + this.player.width / 2 - 17.5, this.player.y - this.player.height / 2 - 1, 4, 0, Math.PI * 2);
+                this.ctx.fill();
                 
                 this.ctx.restore();
-                
-                if (this.player.velocity > 30 && Math.random() < 0.3) {
-                    this.createTrailParticle();
+            }
+            
+            renderHeadlights() {
+                if (this.player.headlights && this.gameState === 'RUNNING') {
+                    const gradient = this.ctx.createRadialGradient(
+                        this.player.x, this.player.y - this.player.height / 2,
+                        0,
+                        this.player.x, this.player.y - this.player.height / 2,
+                        200
+                    );
+                    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                    gradient.addColorStop(0.3, 'rgba(255, 255, 200, 0.4)');
+                    gradient.addColorStop(1, 'rgba(255, 255, 200, 0)');
+                    
+                    this.ctx.fillStyle = gradient;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.player.x - 50, this.player.y - this.player.height / 2);
+                    this.ctx.lineTo(this.player.x - 150, 0);
+                    this.ctx.lineTo(this.player.x + 150, 0);
+                    this.ctx.lineTo(this.player.x + 50, this.player.y - this.player.height / 2);
+                    this.ctx.closePath();
+                    this.ctx.fill();
                 }
             }
             
             renderParticles() {
                 for (const p of this.particles) {
                     this.ctx.globalAlpha = p.life / 100;
+                    
+                    if (p.type === 'explosion') {
+                        this.ctx.fillStyle = p.color;
+                        this.ctx.beginPath();
+                        this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    } else if (p.type === 'metal') {
+                        this.ctx.fillStyle = p.color;
+                        this.ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+                    }
+                }
+                this.ctx.globalAlpha = 1;
+            }
+            
+            renderSmoke() {
+                for (const p of this.smokeParticles) {
+                    this.ctx.globalAlpha = p.life / 100 * 0.6;
                     this.ctx.fillStyle = p.color;
                     this.ctx.beginPath();
                     this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -1499,14 +1958,22 @@
             }
             
             renderSpecialEffects() {
+                // Efeito de turbo
                 if (this.player.turbo && this.player.velocity > 100) {
-                    this.ctx.fillStyle = 'rgba(255, 100, 100, 0.05)';
+                    this.ctx.fillStyle = 'rgba(255, 100, 100, 0.1)';
                     this.ctx.fillRect(0, 0, this.width, this.height);
                 }
                 
+                // Efeito de dano
                 if (this.player.damage > 0) {
-                    const intensity = Math.sin(Date.now() / 200) * 0.1 * (this.player.damage / 100);
+                    const intensity = Math.sin(Date.now() / 200) * 0.15 * (this.player.damage / 100);
                     this.ctx.fillStyle = `rgba(255, 0, 0, ${intensity})`;
+                    this.ctx.fillRect(0, 0, this.width, this.height);
+                }
+                
+                // Efeito de velocidade (motion blur)
+                if (this.player.velocity > 200) {
+                    this.ctx.fillStyle = `rgba(0, 0, 0, ${(this.player.velocity - 200) / 300 * 0.2})`;
                     this.ctx.fillRect(0, 0, this.width, this.height);
                 }
             }
@@ -1564,9 +2031,11 @@
                 }
                 
                 this.gameState = 'RUNNING';
-                this.player.velocity = 40;
-                this.log('Sistemas online');
-                this.log('Motor iniciado');
+                this.player.velocity = 50;
+                this.player.headlights = true;
+                this.log('Sistemas online - Modo Realista');
+                this.log('Motor V8 iniciado');
+                this.log('Faróis ativados');
             }
             
             stop() {
@@ -1574,6 +2043,7 @@
                 this.gameState = 'PAUSED';
                 this.player.velocity = 0;
                 this.player.turbo = false;
+                this.player.brakeLights = true;
                 this.log('Sistemas em pausa');
             }
             
@@ -1585,6 +2055,21 @@
                 
                 this.player.turbo = !this.player.turbo;
                 this.log(`Turbo ${this.player.turbo ? 'ativado' : 'desativado'}`);
+                
+                if (this.player.turbo) {
+                    // Efeito sonoro visual do turbo
+                    for (let i = 0; i < 10; i++) {
+                        this.smokeParticles.push({
+                            x: this.player.x - this.player.width * 0.4 + Math.random() * this.player.width * 0.8,
+                            y: this.player.y + this.player.height * 0.3,
+                            vx: (Math.random() - 0.5) * 2,
+                            vy: -Math.random() * 3,
+                            size: 4 + Math.random() * 6,
+                            life: 80 + Math.random() * 80,
+                            color: 'rgba(255, 100, 100, 0.9)'
+                        });
+                    }
+                }
             }
             
             toggleCamouflage() {
@@ -1599,7 +2084,7 @@
                 document.getElementById('finalScore').textContent = this.score;
                 document.getElementById('finalDistance').textContent = Math.round(this.distance);
                 document.getElementById('gameOverScreen').style.display = 'flex';
-                this.log(`Game Over: ${reason}`);
+                this.log(`Missão falhou: ${reason}`);
             }
             
             setupInput() {
@@ -1618,6 +2103,11 @@
                     
                     if (key === 'c') {
                         this.toggleCamouflage();
+                    }
+                    
+                    if (key === 'h') {
+                        this.player.headlights = !this.player.headlights;
+                        this.log(`Faróis ${this.player.headlights ? 'ligados' : 'desligados'}`);
                     }
                     
                     if (key === 'r') {
@@ -1802,18 +2292,22 @@
                 this.player.invincible = false;
                 this.player.invincibleTimer = 0;
                 this.player.lane = 1;
+                this.player.headlights = true;
+                this.player.brakeLights = false;
                 
                 this.obstacles = [];
                 this.particles = [];
+                this.smokeParticles = [];
                 this.obstacleSpawnTimer = 0;
-                this.obstacleSpawnRate = 180;
+                this.obstacleSpawnRate = 120;
                 
                 this.input.left = this.input.right = this.input.up = this.input.down = false;
                 this.keys = {};
                 
                 document.getElementById('gameOverScreen').style.display = 'none';
                 
-                this.log('Jogo reiniciado');
+                this.log('Sistema reinicializado');
+                this.log('Batmóvel pronto para ação');
                 this.log('Aguardando ignição...');
                 
                 requestAnimationFrame((t) => this.gameLoop(t));
